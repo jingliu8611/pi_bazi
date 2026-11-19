@@ -27,3 +27,6 @@ data/vector_db/*
 
 # Local source books
 books/*.txt
+
+* Manual notes
+manual_notes/

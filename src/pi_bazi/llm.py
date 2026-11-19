@@ -22,7 +22,7 @@ from google.genai import types
 
 from pi_bazi.prompt import PromptParts
 
-DEFAULT_MODEL = "gemini-3.6-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 class GeminiClient:
@@ -30,7 +30,7 @@ class GeminiClient:
     A thin wrapper around the google-genai SDK.
 
     Args:
-        model:   Gemini model name. Defaults to gemini-3.6-flash.
+        model:   Gemini model name. Defaults to gemini-3.5-flash-lite.
         api_key: Gemini API key. If not provided, falls back to the
                  GEMINI_API_KEY environment variable (loaded from .env).
         _inner:  Optional pre-built google.genai.Client, used in tests to
