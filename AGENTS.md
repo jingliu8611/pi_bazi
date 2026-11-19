@@ -45,6 +45,9 @@ Bazi knowledge sources, such as 子平真诠.
 
 ## 5. Working Process
 
+- **Greeting / Non-task inputs:** If the user simply greets you (e.g., "hello") or asks a general question without requesting a feature or code change, respond conversationally without running shell commands or inspecting the directory.
+- **Directory inspection:** When inspecting the project structure, always exclude `venv/`, `.git/`, `__pycache__/`, and `data/` to avoid noisy output.
+
 Before implementing a feature:
 
 1. Inspect the existing project structure and code.
