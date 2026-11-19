@@ -71,7 +71,7 @@ This approach:
 **Files:** `src/pi_bazi/llm.py`
 
 - Wrap `google-genai` calls in a thin client using the free-tier Gemini model
-  (e.g. `gemini-2.0-flash`)
+  (e.g. `gemini-3.5-flash`)
 - Load API key from `.env` via `python-dotenv`
 - Send the constructed prompt, return response text
 - Keep the LLM client interface simple so it can be swapped later (e.g. paid
