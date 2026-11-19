@@ -12,6 +12,9 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+[project.scripts]
+pi-bazi = "pi_bazi.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
