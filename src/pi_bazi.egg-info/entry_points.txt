@@ -1,2 +1,3 @@
 [console_scripts]
 pi-bazi = pi_bazi.cli:main
+pi-bazi-web = pi_bazi.web:main

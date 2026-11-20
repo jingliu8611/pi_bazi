@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/pi_bazi/__init__.py
+src/pi_bazi/analysis_service.py
 src/pi_bazi/book.py
 src/pi_bazi/chart.py
 src/pi_bazi/cli.py
@@ -12,6 +13,7 @@ src/pi_bazi.egg-info/dependency_links.txt
 src/pi_bazi.egg-info/entry_points.txt
 src/pi_bazi.egg-info/requires.txt
 src/pi_bazi.egg-info/top_level.txt
+tests/test_analysis_service.py
 tests/test_book.py
 tests/test_chart.py
 tests/test_cli.py

@@ -14,11 +14,18 @@ dependencies = [
 
 [project.scripts]
 pi-bazi = "pi_bazi.cli:main"
+pi-bazi-web = "pi_bazi.web:main"
 
 [project.optional-dependencies]
+web = [
+    "flask>=3.0",
+    "markdown>=3.6",
+    "nh3>=0.2",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.8",
+    "pi-bazi[web]",
 ]
 
 [tool.setuptools.packages.find]
