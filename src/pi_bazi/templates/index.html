@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>八字命理分析 — 滴天髓</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                   "Noto Sans SC", sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem;
+      color: #222;
+      line-height: 1.75;
+      background: #fafaf8;
+    }
+
+    /* ---- Header ---- */
+    .site-title   { font-size: 1.7rem; color: #3d2b1f; margin: 0 0 0.2rem; }
+    .site-subtitle { color: #999; margin: 0 0 2rem; font-size: 0.9rem; }
+
+    /* ---- Form ---- */
+    .input-form { background: #fff; border: 1px solid #e5ddd5; border-radius: 8px;
+                  padding: 1.5rem 2rem; }
+
+    .field-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.9rem; }
+    .field-row label.field-label {
+      width: 3.5em; text-align: right; color: #666; font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    .field-row input[type="text"] {
+      font-size: 1.15rem; padding: 0.35em 0.6em;
+      border: 1px solid #ccc; border-radius: 4px;
+      width: 5.5em; font-family: inherit; letter-spacing: 0.05em;
+    }
+    .field-row input[type="text"]:focus {
+      outline: none; border-color: #7a5c45; box-shadow: 0 0 0 2px #e8d9cc;
+    }
+    .pillar-hint { font-size: 0.8rem; color: #bbb; }
+
+    .gender-row { display: flex; gap: 1.8rem; }
+    .gender-row label { display: flex; align-items: center; gap: 0.4em;
+                        cursor: pointer; color: #333; }
+
+    .form-actions { margin-top: 1.4rem; display: flex; align-items: center; gap: 1rem; }
+    button[type="submit"] {
+      background: #3d2b1f; color: #fff; border: none;
+      padding: 0.55em 1.8em; font-size: 1rem; border-radius: 5px;
+      cursor: pointer; font-family: inherit;
+    }
+    button[type="submit"]:hover:not(:disabled) { background: #5c3d2a; }
+    button[type="submit"]:disabled              { background: #bbb; cursor: not-allowed; }
+    #loading { color: #999; font-size: 0.95rem; display: none; }
+
+    /* ---- Error ---- */
+    .error-box {
+      margin-top: 1.75rem; background: #fff5f5;
+      border-left: 4px solid #c0392b;
+      border-radius: 0 6px 6px 0; padding: 1rem 1.25rem; color: #7b2412;
+    }
+    .error-box strong { display: block; margin-bottom: 0.3em; }
+
+    /* ---- Result ---- */
+    .result-box {
+      margin-top: 1.75rem; background: #fff;
+      border: 1px solid #e0d5c8; border-radius: 8px;
+      padding: 1.75rem 2.25rem;
+    }
+    .result-label {
+      font-size: 0.8rem; color: #aaa; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 1rem;
+    }
+
+    /* Markdown-generated content inside .result-box */
+    .result-box h1, .result-box h2 {
+      font-size: 1.1rem; color: #3d2b1f;
+      border-bottom: 1px solid #ede5db; padding-bottom: 0.3em;
+      margin-top: 1.4em;
+    }
+    .result-box h3, .result-box h4 { font-size: 1rem; color: #3d2b1f; margin-top: 1.2em; }
+    .result-box p                  { margin: 0.6em 0; }
+    .result-box ul, .result-box ol { padding-left: 1.6em; margin: 0.5em 0; }
+    .result-box blockquote {
+      border-left: 3px solid #d0c0b0; margin: 0.75em 0;
+      padding-left: 1em; color: #666;
+    }
+    .result-box code {
+      background: #f5f2ee; padding: 0.1em 0.4em;
+      border-radius: 3px; font-family: monospace; font-size: 0.9em;
+    }
+    .result-box pre {
+      background: #f5f2ee; padding: 1em; border-radius: 5px;
+      overflow-x: auto; font-size: 0.9em;
+    }
+    .result-box pre code { background: none; padding: 0; }
+    .result-box table    { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    .result-box th,
+    .result-box td       { border: 1px solid #ddd; padding: 0.5em 0.75em; }
+    .result-box th       { background: #f5ede5; }
+    .result-box hr       { border: none; border-top: 1px solid #e5ddd5; margin: 1.5em 0; }
+  </style>
+</head>
+<body>
+
+  <h1 class="site-title">八字命理分析</h1>
+  <p class="site-subtitle">知识来源：《滴天髓》（京图著，刘基注）</p>
+
+  <form class="input-form" method="post" action="/analyze" id="analyze-form"
+        autocomplete="off">
+
+    <div class="field-row">
+      <label class="field-label" for="year">年柱</label>
+      <input type="text" id="year" name="year"
+             value="{{ year or '' }}" placeholder="甲子" maxlength="2" required>
+      <span class="pillar-hint">天干 + 地支，如 甲子</span>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label" for="month">月柱</label>
+      <input type="text" id="month" name="month"
+             value="{{ month or '' }}" placeholder="丙寅" maxlength="2" required>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label" for="day">日柱</label>
+      <input type="text" id="day" name="day"
+             value="{{ day or '' }}" placeholder="戊午" maxlength="2" required>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label" for="hour">时柱</label>
+      <input type="text" id="hour" name="hour"
+             value="{{ hour or '' }}" placeholder="庚申" maxlength="2" required>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">性别</label>
+      <div class="gender-row">
+        {# required on first radio only — browser treats the whole group as required #}
+        <label>
+          <input type="radio" name="gender" value="男"
+                 {{ 'checked' if gender == '男' else '' }} required>
+          男
+        </label>
+        <label>
+          <input type="radio" name="gender" value="女"
+                 {{ 'checked' if gender == '女' else '' }}>
+          女
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" id="submit-btn">开始分析</button>
+      <span id="loading">正在分析，请稍候…</span>
+    </div>
+
+  </form>
+
+  {% if error %}
+  <div class="error-box">
+    <strong>错误</strong>
+    {{ error }}
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <div class="result-box">
+    <div class="result-label">分析结果</div>
+    {{ result | safe }}
+  </div>
+  {% endif %}
+
+  <script>
+    document.getElementById('analyze-form').addEventListener('submit', function () {
+      var btn     = document.getElementById('submit-btn');
+      var loading = document.getElementById('loading');
+      btn.disabled    = true;
+      btn.textContent = '分析中…';
+      loading.style.display = 'inline';
+    });
+  </script>
+
+</body>
+</html>
