@@ -9,53 +9,15 @@ Usage (non-interactive):
 
 Any argument not supplied on the command line will be prompted interactively.
 
-Pipeline:
+Pipeline (delegated to analysis_service.run_analysis):
     validate input → load book → build prompt → call LLM → display result
 """
 
 import argparse
 import sys
 
-from pi_bazi.book import load_book
+from pi_bazi.analysis_service import run_analysis
 from pi_bazi.chart import BaziChart
-from pi_bazi.llm import GeminiClient
-from pi_bazi.prompt import build_prompt
-
-# ---------------------------------------------------------------------------
-# Pipeline
-# ---------------------------------------------------------------------------
-
-
-def run_analysis(
-    year: str,
-    month: str,
-    day: str,
-    hour: str,
-    gender: str,
-    *,
-    _client: GeminiClient | None = None,
-) -> str:
-    """
-    Run the full Bazi analysis pipeline and return the LLM response text.
-
-    Args:
-        year, month, day, hour: Pillar strings, e.g. '甲子'.
-        gender: '男', '女', 'male', or 'female'.
-        _client: Optional pre-built GeminiClient (used in tests to avoid
-                 real API calls).
-
-    Returns:
-        The analysis as a plain string.
-
-    Raises:
-        ValueError:   If any pillar or gender input is invalid.
-        RuntimeError: If the LLM returns an empty response.
-    """
-    chart = BaziChart.from_strings(year, month, day, hour, gender)
-    book = load_book()
-    prompt = build_prompt(chart, book)
-    client = _client or GeminiClient()
-    return client.generate(prompt)
 
 
 # ---------------------------------------------------------------------------
@@ -119,10 +81,7 @@ def main(argv: list[str] | None = None) -> None:
     print("\n正在分析，请稍候...\n")
 
     try:
-        book = load_book()
-        prompt = build_prompt(chart, book)
-        client = GeminiClient()
-        result = client.generate(prompt)
+        result = run_analysis(year, month, day, hour, gender)
     except Exception as exc:
         print(f"\n分析失败: {exc}", file=sys.stderr)
         sys.exit(1)
