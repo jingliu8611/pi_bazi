@@ -10,6 +10,9 @@ Design notes:
   without making real API calls.
 - If the response is blocked by safety filters, response.text will be None;
   a clear RuntimeError is raised in that case.
+- SDK-specific errors (rate limit, server error, network failure) are caught
+  in generate() and re-raised as LLMRateLimitError or LLMUnavailableError so
+  callers (CLI, web) can handle them without importing google-genai types.
 - To swap providers later (e.g. Claude), replace this module with a new
   implementation that accepts and returns the same types.
 """
@@ -19,10 +22,33 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from google.genai.errors import ClientError, ServerError
 
 from pi_bazi.prompt import PromptParts
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
+
+
+# ---------------------------------------------------------------------------
+# Typed exceptions
+# ---------------------------------------------------------------------------
+
+
+class LLMError(RuntimeError):
+    """Base class for all LLM-related errors raised by this module."""
+
+
+class LLMRateLimitError(LLMError):
+    """Raised when the API returns HTTP 429 (Too Many Requests / quota exceeded)."""
+
+
+class LLMUnavailableError(LLMError):
+    """Raised when the API is unreachable or returns a 5xx / unexpected 4xx error."""
+
+
+# ---------------------------------------------------------------------------
+# Client
+# ---------------------------------------------------------------------------
 
 
 class GeminiClient:
@@ -64,16 +90,34 @@ class GeminiClient:
             The model's response as a plain string.
 
         Raises:
-            RuntimeError: If the response text is empty (e.g. blocked by
-                          safety filters or an unexpected model refusal).
+            LLMRateLimitError:   HTTP 429 — quota or rate limit exceeded.
+            LLMUnavailableError: HTTP 5xx, other 4xx, or network/timeout error.
+            RuntimeError:        Empty response (safety filter or model refusal).
         """
-        response = self._inner.models.generate_content(
-            model=self.model,
-            contents=prompt.user_message,
-            config=types.GenerateContentConfig(
-                system_instruction=prompt.system_instruction,
-            ),
-        )
+        try:
+            response = self._inner.models.generate_content(
+                model=self.model,
+                contents=prompt.user_message,
+                config=types.GenerateContentConfig(
+                    system_instruction=prompt.system_instruction,
+                ),
+            )
+        except ClientError as exc:
+            if exc.code == 429:
+                raise LLMRateLimitError(
+                    "Gemini API rate limit exceeded. Please wait a moment and try again."
+                ) from exc
+            raise LLMUnavailableError(
+                f"Gemini API request failed (HTTP {exc.code}): {exc.message}"
+            ) from exc
+        except ServerError as exc:
+            raise LLMUnavailableError(
+                f"Gemini API server error (HTTP {exc.code}). Please try again later."
+            ) from exc
+        except OSError as exc:
+            raise LLMUnavailableError(
+                f"Network error while contacting Gemini API: {exc}"
+            ) from exc
 
         if not response.text:
             raise RuntimeError(

@@ -18,6 +18,7 @@ import sys
 
 from pi_bazi.analysis_service import run_analysis
 from pi_bazi.chart import BaziChart
+from pi_bazi.llm import LLMRateLimitError, LLMUnavailableError
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +83,12 @@ def main(argv: list[str] | None = None) -> None:
 
     try:
         result = run_analysis(year, month, day, hour, gender)
+    except LLMRateLimitError as exc:
+        print(f"\nAPI 请求频率超限，请稍后再试: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except LLMUnavailableError as exc:
+        print(f"\nAPI 服务暂时不可用: {exc}", file=sys.stderr)
+        sys.exit(1)
     except Exception as exc:
         print(f"\n分析失败: {exc}", file=sys.stderr)
         sys.exit(1)

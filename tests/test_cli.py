@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pi_bazi.cli import main
+from pi_bazi.llm import LLMRateLimitError, LLMUnavailableError
 
 
 # ---------------------------------------------------------------------------
@@ -87,3 +88,27 @@ def test_main_exits_on_llm_error(capsys):
             ])
     assert exc_info.value.code == 1
     assert "分析失败" in capsys.readouterr().err
+
+
+def test_main_exits_with_rate_limit_message(capsys):
+    with patch("pi_bazi.analysis_service.GeminiClient") as MockClient:
+        MockClient.return_value.generate.side_effect = LLMRateLimitError("quota exceeded")
+        with pytest.raises(SystemExit) as exc_info:
+            main([
+                "--year", "甲子", "--month", "丙寅",
+                "--day", "戊午", "--hour", "庚申", "--gender", "男",
+            ])
+    assert exc_info.value.code == 1
+    assert "频率超限" in capsys.readouterr().err
+
+
+def test_main_exits_with_unavailable_message(capsys):
+    with patch("pi_bazi.analysis_service.GeminiClient") as MockClient:
+        MockClient.return_value.generate.side_effect = LLMUnavailableError("503")
+        with pytest.raises(SystemExit) as exc_info:
+            main([
+                "--year", "甲子", "--month", "丙寅",
+                "--day", "戊午", "--hour", "庚申", "--gender", "男",
+            ])
+    assert exc_info.value.code == 1
+    assert "不可用" in capsys.readouterr().err

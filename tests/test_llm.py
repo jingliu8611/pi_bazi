@@ -10,7 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pi_bazi.llm import DEFAULT_MODEL, GeminiClient
+from google.genai.errors import ClientError, ServerError
+
+from pi_bazi.llm import DEFAULT_MODEL, GeminiClient, LLMRateLimitError, LLMUnavailableError
 from pi_bazi.prompt import PromptParts
 
 
@@ -133,3 +135,81 @@ def test_generate_raises_on_empty_string_response():
     client = GeminiClient(_inner=mock_inner)
     with pytest.raises(RuntimeError, match="empty response"):
         client.generate(sample_prompt())
+
+
+# ---------------------------------------------------------------------------
+# generate() — SDK error wrapping
+# ---------------------------------------------------------------------------
+
+
+def make_mock_inner_raising(exc: Exception) -> MagicMock:
+    """Return a mock inner client whose generate_content raises the given exception."""
+    mock_inner = MagicMock()
+    mock_inner.models.generate_content.side_effect = exc
+    return mock_inner
+
+
+def test_generate_wraps_429_as_rate_limit_error():
+    exc = ClientError(429, {"message": "Too Many Requests", "status": "RESOURCE_EXHAUSTED"})
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMRateLimitError, match="rate limit"):
+        client.generate(sample_prompt())
+
+
+def test_generate_rate_limit_error_preserves_cause():
+    exc = ClientError(429, {"message": "Too Many Requests", "status": "RESOURCE_EXHAUSTED"})
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMRateLimitError) as exc_info:
+        client.generate(sample_prompt())
+    assert exc_info.value.__cause__ is exc
+
+
+def test_generate_wraps_other_client_error_as_unavailable():
+    exc = ClientError(400, {"message": "Bad Request", "status": "INVALID_ARGUMENT"})
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMUnavailableError, match="400"):
+        client.generate(sample_prompt())
+
+
+def test_generate_wraps_server_error_as_unavailable():
+    exc = ServerError(503, {"message": "Service Unavailable", "status": "UNAVAILABLE"})
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMUnavailableError, match="503"):
+        client.generate(sample_prompt())
+
+
+def test_generate_server_error_preserves_cause():
+    exc = ServerError(503, {"message": "Service Unavailable", "status": "UNAVAILABLE"})
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMUnavailableError) as exc_info:
+        client.generate(sample_prompt())
+    assert exc_info.value.__cause__ is exc
+
+
+def test_generate_wraps_os_error_as_unavailable():
+    exc = OSError("Connection refused")
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMUnavailableError, match="Network error"):
+        client.generate(sample_prompt())
+
+
+def test_generate_wraps_timeout_as_unavailable():
+    # TimeoutError is a subclass of OSError in Python 3
+    exc = TimeoutError("timed out")
+    client = GeminiClient(_inner=make_mock_inner_raising(exc))
+    with pytest.raises(LLMUnavailableError, match="Network error"):
+        client.generate(sample_prompt())
+
+
+def test_llm_rate_limit_error_is_subclass_of_llm_error_and_runtime_error():
+    from pi_bazi.llm import LLMError
+    err = LLMRateLimitError("test")
+    assert isinstance(err, LLMError)
+    assert isinstance(err, RuntimeError)
+
+
+def test_llm_unavailable_error_is_subclass_of_llm_error_and_runtime_error():
+    from pi_bazi.llm import LLMError
+    err = LLMUnavailableError("test")
+    assert isinstance(err, LLMError)
+    assert isinstance(err, RuntimeError)
